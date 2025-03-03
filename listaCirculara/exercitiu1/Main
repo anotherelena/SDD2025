@@ -1,0 +1,74 @@
+/*gestionare a rezervarilor unei agentii de turism
+struct Rezervare : cod rezervare (unsigned int), destinatie (char*),
+data plecare(char*), nr turisti(unsigned int)
+structura lista simpla circulara cu datele a cel putin 5 rezervari preluate dintr-un fisier text
+creeare struct prin apel repetat a unei fct de inserare a unei rez noi in cadrul struct
+functia care returneaza din lista simpla rezervarea cu cel mai mare nr de turisti
+functia care actualizeaza data de plecare pt o rezervare pe baza de cod
+functia pt destinatia cu cel mai mare nr de turisti
+functia care salveaza in vector codurile rez avand un oras de plecare specificat ca parametru
+dezaloc toate zonele de memorie heap*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//typedef sa evitam struct la infinit
+
+typedef struct {
+	unsigned int cod;
+	char* destinatie; 
+	char* oras_plecare;
+	char* data_plecare;
+	unsigned int nr_turisti;
+} Rezervare;
+
+typedef struct Nod {
+	Rezervare *rezervare;
+	struct Nod *next;
+} Nod;
+
+char* dubstr(const char* ds) {
+	char* copy = malloc(strlen(ds) + 1);
+	if (copy != NULL) {
+		strcpy(copy, ds);
+	} 
+	return copy;
+}
+
+Nod* insereazaRezervare(Nod* coada, Rezervare* rez) {
+	Nod* nodNou = (Nod*)malloc(sizeof(Nod));
+	if (!nodNou) {
+		return coada;
+		}
+	nodNou->rezervare = rez;
+	
+	//a->b->c->d nextul e sageata care se muta intr o lista circulara
+	if (coada == NULL) {
+		nodNou->next = nodNou;
+		return nodNou;
+	}
+	else {
+		nodNou->next = coada->next;
+		coada->next = nodNou;
+		return nodNou;
+	}
+}
+
+Rezervare* findMaxRezervare(Nod* coada) {
+	if (coada == NULL) {
+		return NULL;
+	}
+
+	Nod* curenta = coada->next; //incepem cu capul (coada pointeaza la cap) 
+	Rezervare* maxRez = curenta->rezervare; //initializam maxRez cu capul listei
+
+	do { //priti obvi dar curenta se muta la ce pointeaza curenta atat timp cat curenta nu pointeaza iar la cap
+		if (curenta->rezervare->nr_turisti > maxRez->nr_turisti) {
+			maxRez = curenta->rezervare;
+		}
+		curenta = curenta->next;
+	} while (curenta != coada->next);
+	return maxRez;
+
+}
