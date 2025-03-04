@@ -1,0 +1,138 @@
+/*factura: id, data emitere, beneficiar, suma de plata, numar de zile scadente
+lista dubla circulara cu cel putin 5 facturi cu date din txt: functie inserare
+nr total de zile pana la scadenta catre un anumit beneficiar specificat ca param
+functia modifica suma de plata prin id prin param
+sterge facturi din lista pt care suma e mai mica decat un prag
+returneaza stiva facturi emise dupa o anumita data*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+	int idFactura;
+	char* dataEmitere;
+	char* beneficiar;
+	float sumaPlata;
+	unsigned int nrZileScadenta;
+} Factura;
+
+typedef struct NodFactura {
+	Factura* factura;
+	struct NodFactura* urm;
+	struct NodFactura* pre;
+} NodFactura;
+
+typedef struct NodStiva {
+	Factura* factura;
+	struct NodStiva* urm;
+} NodStiva;
+
+//FUNCTIE AJUTATOARE SA FACEM COPIATUL DEEP MAI EASY
+
+char* copiazaString(const char* s) {
+	char* copie = malloc(strlen(s) + 1);
+	if (copie != NULL) {
+		strcpy(copie, s);
+	}
+	return copie;
+}
+
+// inserare factura: cap - cu pointer spre cap
+
+NodFactura* inserareFactura(NodFactura* nodInceput, Factura* factura) {
+	NodFactura* nodNou = (NodFactura*)malloc(sizeof(NodFactura));
+	if (nodNou == NULL) {
+		return nodInceput;
+	}
+	nodNou->factura = factura;
+
+	if (nodInceput == NULL) {
+		nodNou->urm = nodNou;
+		nodNou->pre = nodNou;
+		return nodNou;
+	}
+	//legam capetele cu noul nod
+	NodFactura* nodFinal = nodInceput->pre;
+	nodNou->urm = nodInceput;
+	nodNou->pre = nodFinal;
+	nodFinal->urm = nodNou;
+	nodInceput->pre = nodNou;
+
+	return nodInceput;
+}
+
+//parcurgem si afisam informatiile din fiecare factura
+
+void afisareInformatiiFacturi(NodFactura* nodInceput) {
+	if (nodInceput == NULL)
+		return;
+	NodFactura* nodCurent = nodInceput;
+	do {
+		printf("ID: %d, Data: %s, Beneficiar: %s, Suma: %.2f, Zile scadente: %u\n",
+			nodCurent->factura->idFactura,
+			nodCurent->factura->dataEmitere,
+			nodCurent->factura->beneficiar,
+			nodCurent->factura->sumaPlata,
+			nodCurent->factura->nrZileScadenta);
+		nodCurent = nodCurent->urm;
+	} while (nodCurent != nodInceput);
+	printf("***********************************************\n");
+}
+
+//totalZilePentru beneficiar. Calculam cate zile in total sunt pe facturile unui beneficiar (sincer nush ce aplicatie practica are acest exercitiu, dar wtv)
+
+unsigned int totalZilePentruBeneficiar(NodFactura* nodInceput, const char* beneficiar) {
+	unsigned int total = 0;
+	if (nodInceput == NULL)
+		return total;
+	NodFactura* nodCurent = nodInceput;
+	do {
+		if (strcmp(nodCurent->factura->beneficiar, beneficiar) == 0)
+			total += nodCurent->factura->nrZileScadenta;
+		nodCurent = nodCurent->urm;
+	} while (nodCurent != nodInceput);
+	return total;
+}
+
+//modificareSumaPlata cu param id, noua suma si nodInceput;
+
+void modificaSumaPlata(NodFactura* nodInceput, int id, float nouaSuma) {
+	if (nodInceput == NULL)
+		return;
+	NodFactura* nodCurent = nodInceput;
+	do {
+		if (nodCurent->factura->idFactura == id) {
+			nodCurent->factura->sumaPlata = nouaSuma;
+			break;
+		}
+		nodCurent = nodCurent->urm;
+	} while (nodCurent != nodInceput);
+}
+
+//sterge facturi sub un anumit prag: nodInceput, prag, pointer actualizat
+
+NodFactura* stergeFacturiSubPrag(NodFactura* nodInceput, float prag) {
+	if (nodInceput == NULL)
+		return;
+
+	NodFactura* nodCurent = nodInceput;
+	int terminat = 0;
+
+	do {
+		NodFactura* urmator = nodCurent->urm; // adica daca e un sg nod
+		if (nodCurent->factura->sumaPlata < prag) {
+			if (nodCurent->urm == nodCurent && nodCurent->pre == nodCurent) {
+				free(nodCurent->factura->dataEmitere);
+				free(nodCurent->factura-> beneficiar);
+				free(nodCurent->factura);
+				free(nodCurent);
+				return NULL;
+			}
+			else {
+
+			}
+		}
+
+	}
+}
