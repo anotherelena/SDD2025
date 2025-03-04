@@ -60,15 +60,78 @@ Rezervare* findMaxRezervare(Nod* coada) {
 		return NULL;
 	}
 
-	Nod* curenta = coada->next; //incepem cu capul (coada pointeaza la cap) 
-	Rezervare* maxRez = curenta->rezervare; //initializam maxRez cu capul listei
+	Nod* nodCurent = coada->next; //incepem cu capul (coada pointeaza la cap) 
+	Rezervare* maxRez = nodCurent->rezervare; //initializam maxRez cu capul listei
 
-	do { //priti obvi dar curenta se muta la ce pointeaza curenta atat timp cat curenta nu pointeaza iar la cap
-		if (curenta->rezervare->nr_turisti > maxRez->nr_turisti) {
-			maxRez = curenta->rezervare;
+	do { //priti obvi dar nodCurent se muta la ce pointeaza nodCurent atat timp cat nodCurent nu pointeaza iar la cap
+		if (nodCurent->rezervare->nr_turisti > maxRez->nr_turisti) {
+			maxRez = nodCurent->rezervare;
 		}
-		curenta = curenta->next;
-	} while (curenta != coada->next);
+		nodCurent = nodCurent->next;
+	} while (nodCurent != coada->next);
 	return maxRez;
+}
 
+//functie updateDataPleacare - cauta prin lista in fct de cod elibereaza/alocheaza
+//aici avem functia aux de deep copy dubstr(dubleaza string )
+
+void updateDataPlecare(Nod* coada, unsigned int cod, const char* data_noua){
+    if(coada == NULL){
+        return; //nimic ca lista e goala
+    }
+    Nod* nodCurent = coada->next;
+    do{
+        if(nodCurent->rezervare->cod == cod){
+            free(nodCurent->rezervare->data_plecare);
+            nodCurent->rezervare->data_plecare = dubstr(data_noua);
+            break;
+        }
+        nodCurent = nodCurent->next;
+    } while(nodCurent!=coada->next);
+}
+
+//agregate pt a calcula destinatii cu cei mai multi turisti
+
+typedef struct{
+    char* destinatie;
+    unsigned int total_turisti;
+} AgregatDestinatie;
+
+//findDestinatieMaxTuristi
+/*parcurgem lista si adunam nr de turisti per destinatie, dupa max nr turisti*/
+char* findDestinatieMaxTuristi(Nod* coada){
+    if(coada==NULL)
+    return NULL;
+
+
+    AgregatDestinatie agregate[100];
+    int agrCount =0;
+
+    Nod* nodCurent = coada->next;
+    do{
+        char* dest = nodCurent->rezervare->destinatie;
+        int found =0;
+        //verificam daca destinatia a mai fost vizitata
+        for(int i=0;i<agrCount;i++){
+            if(strcmp(agregate[i].destinatie, dest)==0){
+                agregate[i].total_turisti +=nodCurent->rezervare->nr_turisti;
+                found=1;
+                break;
+            }
+        }
+        if(!found){
+            agregate[agrCount].destinatie = dest;
+            agregate[agrCount].total_turisti = nodCurent->rezervare->nr_turisti;
+            agrCount++;
+        }
+        nodCurent = nodCurent->next;
+    } while(nodCurent !=coada->next);
+
+    int maxIndex = 0;
+    for(int i=0; i<agrCount; i++){
+        if(agregate[i].total_turisti >agregate[maxIndex].total_turisti){
+            maxIndex =i;
+        }
+    }
+    return dubstr(agregate[maxIndex].destinatie);
 }
