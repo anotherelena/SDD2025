@@ -36,31 +36,31 @@ char* dubstr(const char* ds) {
 	return copy;
 }
 
-Nod* insereazaRezervare(Nod* coada, Rezervare* rez) {
+Nod* insereazaRezervare(Nod* nodFinal, Rezervare* rez) {
 	Nod* nodNou = (Nod*)malloc(sizeof(Nod));
 	if (!nodNou) {
-		return coada;
+		return nodFinal;
 		}
 	nodNou->rezervare = rez;
 	
 	//a->b->c->d nextul e sageata care se muta intr o lista circulara
-	if (coada == NULL) {
+	if (nodFinal == NULL) {
 		nodNou->next = nodNou;
 		return nodNou;
 	}
 	else {
-		nodNou->next = coada->next;
-		coada->next = nodNou;
+		nodNou->next = nodFinal->next;
+		nodFinal->next = nodNou;
 		return nodNou;
 	}
 }
 
-Rezervare* findMaxRezervare(Nod* coada) {
-	if (coada == NULL) {
+Rezervare* findMaxRezervare(Nod* nodFinal) {
+	if (nodFinal == NULL) {
 		return NULL;
 	}
 
-	Nod* nodCurent = coada->next; //incepem cu capul (coada pointeaza la cap) 
+	Nod* nodCurent = nodFinal->next; //incepem cu capul (nodFinal pointeaza la cap) 
 	Rezervare* maxRez = nodCurent->rezervare; //initializam maxRez cu capul listei
 
 	do { //priti obvi dar nodCurent se muta la ce pointeaza nodCurent atat timp cat nodCurent nu pointeaza iar la cap
@@ -68,18 +68,18 @@ Rezervare* findMaxRezervare(Nod* coada) {
 			maxRez = nodCurent->rezervare;
 		}
 		nodCurent = nodCurent->next;
-	} while (nodCurent != coada->next);
+	} while (nodCurent != nodFinal->next);
 	return maxRez;
 }
 
 //functie updateDataPleacare - cauta prin lista in fct de cod elibereaza/alocheaza
 //aici avem functia aux de deep copy dubstr(dubleaza string )
 
-void updateDataPlecare(Nod* coada, unsigned int cod, const char* data_noua){
-    if(coada == NULL){
+void updateDataPlecare(Nod* nodFinal, unsigned int cod, const char* data_noua){
+    if(nodFinal == NULL){
         return; //nimic ca lista e goala
     }
-    Nod* nodCurent = coada->next;
+    Nod* nodCurent = nodFinal->next;
     do{
         if(nodCurent->rezervare->cod == cod){
             free(nodCurent->rezervare->data_plecare);
@@ -87,7 +87,7 @@ void updateDataPlecare(Nod* coada, unsigned int cod, const char* data_noua){
             break;
         }
         nodCurent = nodCurent->next;
-    } while(nodCurent!=coada->next);
+    } while(nodCurent!=nodFinal->next);
 }
 
 //agregate pt a calcula destinatii cu cei mai multi turisti
@@ -99,15 +99,15 @@ typedef struct{
 
 //findDestinatieMaxTuristi
 /*parcurgem lista si adunam nr de turisti per destinatie, dupa max nr turisti*/
-char* findDestinatieMaxTuristi(Nod* coada){
-    if(coada==NULL)
+char* findDestinatieMaxTuristi(Nod* nodFinal){
+    if(nodFinal==NULL)
     return NULL;
 
 
     AgregatDestinatie agregate[100];
     int agrCount =0;
 
-    Nod* nodCurent = coada->next;
+    Nod* nodCurent = nodFinal->next;
     do{
         char* dest = nodCurent->rezervare->destinatie;
         int found =0;
@@ -125,7 +125,7 @@ char* findDestinatieMaxTuristi(Nod* coada){
             agrCount++;
         }
         nodCurent = nodCurent->next;
-    } while(nodCurent !=coada->next);
+    } while(nodCurent !=nodFinal->next);
 
     int maxIndex = 0;
     for(int i=0; i<agrCount; i++){
@@ -134,4 +134,162 @@ char* findDestinatieMaxTuristi(Nod* coada){
         }
     }
     return dubstr(agregate[maxIndex].destinatie);
+}
+
+/*getCoduriRezervareOras
+array de vectori alocati dinamic cu coduri de rezervare care sa se potriveasca cu parametrul dat- un oras
+returneaza arrayul si numara*/
+
+unsigned int* getCoduriRezervareInFunctieDeOras(Nod* nodFinal, const char* oras, int* out_count){
+    if(nodFinal==NULL){
+        *out_count = 0;
+        return NULL;
+    }
+
+    int count = 0;
+    Nod* nodCurent = nodFinal->next;
+//nr cate rezervari se potrivesc orasului dat
+    do{
+        if(strcmp(nodCurent->rezervare->oras_plecare, oras)==0)
+        count++;
+        nodCurent = nodCurent ->next;
+    } while(nodCurent != nodFinal->next);
+    //alocare memorie pt vectorul de coduri
+
+    unsigned int* coduri = (unsigned int*)malloc(count* sizeof(unsigned int));
+    int index = 0;
+
+    //umplem vectorul cu codurile rezervarilor
+    nodCurent = nodFinal->next;
+    do{
+        if(strcmp(nodCurent->rezervare->oras_plecare, oras)==0)
+            coduri[index++] = nodCurent->rezervare->cod;
+        nodCurent = nodCurent->next;
+    } while (nodCurent != nodFinal->next);
+
+    *out_count = count;
+    return coduri; 
+
+}
+
+//functia de eliberare a memoriei - memoria pt stringurile din rezervare
+//struct rezervare
+//nod
+
+void freeLista(Nod* nodFinal){
+    if(nodFinal == NULL)
+    return;
+
+    Nod* nodInceput = nodFinal -> next;
+    Nod* nodCurent = nodInceput;
+    Nod* nextNod;
+
+    //traversam lista si eliberam fiecare nod
+    while(nodCurent != nodFinal){
+        nextNod = nodCurent->next;
+        free(nodCurent->rezervare->destinatie);
+        free(nodCurent->rezervare->oras_plecare);
+        free(nodCurent->rezervare->data_plecare);
+        free(nodCurent->rezervare);
+        free(nodCurent);
+        nodCurent = nextNod;
+    }
+// eliberam si nodul final
+    free(nodFinal->rezervare->destinatie);
+    free(nodFinal->rezervare->oras_plecare);
+    free(nodFinal->rezervare->data_plecare);
+    free(nodFinal->rezervare);
+    free(nodFinal);
+}
+
+void printRezervare(Rezervare* rez){
+    if(rez){
+        printf("*****************************************\n");
+        printf("Cod: %u\n", rez->cod);
+        printf("Destinatie: %s\n", rez->destinatie);
+        printf("Oras plecare: %s\n", rez->oras_plecare);
+        printf("Data plecare: %s\n", rez->data_plecare);
+        printf("Numar turisti: %u\n", rez->nr_turisti);
+        printf("*****************************************\n");
+    }
+}
+
+void printList(Nod* nodFinal){
+    if(nodFinal == NULL)
+    return;
+
+    Nod* nodCurent = nodFinal->next;
+    do{
+        printRezervare(nodCurent->rezervare);
+        nodCurent = nodCurent->next;
+    } while(nodCurent!=nodFinal->next);
+}
+
+int main(){
+    FILE* fpOut = fopen("rezervari.txt", "w");
+    if(fpOut == NULL){
+        printf("Nu a mers ceva, boss, nu s-a deschis asta, nush.\n");
+        return 1;
+    }
+
+    fprintf(fpOut, "1 Paris Bucuresti 2025-01-01 3\n");
+    fprintf(fpOut, "2 Roma Cluj 2025-01-04 5\n");
+    fprintf(fpOut,"3 Berlin Bucuresti 2025-03-01 10\n");
+    fprintf(fpOut,"4 Budapesta Cluj 2025-04-02 30\n");
+    fprintf(fpOut,"5 Barcelona Bucuresti 2026-03-01 13\n");
+    fprintf(fpOut,"6 Roma Bucuresti 2025-02-07 120\n");
+    fclose(fpOut);
+
+    Nod* nodFinal = NULL;
+    FILE* fp = fopen("rezervari.txt", "r");
+    if(fp==NULL){
+        printf("Tot are asta ceva, nu vrea, nu stie...\n");
+        return 1;
+    }
+
+    unsigned int cod, nr_turisti;
+    char destinatie[100], oras_plecare[100], data_plecare[100];
+
+    while (fscanf(fp,"%u %s %s %s %u", &cod, destinatie, oras_plecare, data_plecare, &nr_turisti) ==5){
+        Rezervare* rez =(Rezervare*)malloc(sizeof(Rezervare));
+        if(!rez) continue;
+        rez->cod = cod;
+        rez->destinatie = dubstr(destinatie);
+        rez->oras_plecare = dubstr(oras_plecare);
+        rez->data_plecare = dubstr(data_plecare);
+        rez->nr_turisti = nr_turisti;
+
+        nodFinal = insereazaRezervare(nodFinal, rez);
+    } 
+    fclose(fp);
+
+    printf("Rezervarile din lista circulara:\n");
+    printList(nodFinal);
+
+    Rezervare* maxRez = findMaxRezervare(nodFinal);
+    printf("Rezervarea cu cel mai mare nr de turisti: \n");
+    printRezervare(maxRez);
+
+    updateDataPlecare(nodFinal, 2, "2028-12-09");
+    printf("Lista dupa actualizarea datei de plecare pentru rezervarea cu codul 2: \n");
+    printList(nodFinal);
+
+    char* destMax = findDestinatieMaxTuristi(nodFinal);
+    if(destMax!= NULL){
+        printf("Destinatia cu cel mai mare numar de turisti: %s\n ", destMax);
+        free(destMax);
+    }
+
+    int count = 0;
+    unsigned int* coduri = getCoduriRezervareInFunctieDeOras(nodFinal, "Bucuresti", &count);
+    printf("Codurile rezervarilor cu orasul de plecare Bucuresti: \n");
+    for(int i=0; i<count; i++){
+        printf("%u ", coduri[i]);
+    }
+    printf("\n");
+    free(coduri);
+
+    freeLista(nodFinal);
+
+    return 0;
 }
