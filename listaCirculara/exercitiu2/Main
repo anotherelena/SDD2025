@@ -62,7 +62,7 @@ NodFactura* inserareFactura(NodFactura* nodInceput, Factura* factura) {
 	return nodInceput;
 }
 
-//parcurgem si afisam informatiile din fiecare factura
+//parcurgem si afisam informatiile din fiecare factura cw
 
 void afisareInformatiiFacturi(NodFactura* nodInceput) {
 	if (nodInceput == NULL)
@@ -77,6 +77,22 @@ void afisareInformatiiFacturi(NodFactura* nodInceput) {
 			nodCurent->factura->nrZileScadenta);
 		nodCurent = nodCurent->urm;
 	} while (nodCurent != nodInceput);
+	printf("***********************************************\n");
+}
+//afisare info ccw
+void afisareInformatiiFacturiPeInvers(NodFactura* nodInceput) {
+	if (nodInceput == NULL)
+		return;
+	NodFactura* nodCurent = nodInceput->pre;
+	do {
+		printf("ID: %d, Data: %s, Beneficiar: %s, Suma: %.2f, Zile scadente: %u\n",
+			nodCurent->factura->idFactura,
+			nodCurent->factura->dataEmitere,
+			nodCurent->factura->beneficiar,
+			nodCurent->factura->sumaPlata,
+			nodCurent->factura->nrZileScadenta);
+		nodCurent = nodCurent->pre;
+	} while (nodCurent != nodInceput->pre);
 	printf("***********************************************\n");
 }
 
@@ -114,13 +130,13 @@ void modificaSumaPlata(NodFactura* nodInceput, int id, float nouaSuma) {
 
 NodFactura* stergeFacturiSubPrag(NodFactura* nodInceput, float prag) {
 	if (nodInceput == NULL)
-		return;
+		return NULL;
 
 	NodFactura* nodCurent = nodInceput;
 	int terminat = 0;
 
 	do {
-		NodFactura* urmator = nodCurent->urm; // adica daca e un sg nod
+		NodFactura* nodUrmator = nodCurent->urm; // adica daca e un sg nod
 		if (nodCurent->factura->sumaPlata < prag) {
 			if (nodCurent->urm == nodCurent && nodCurent->pre == nodCurent) {
 				free(nodCurent->factura->dataEmitere);
@@ -129,10 +145,173 @@ NodFactura* stergeFacturiSubPrag(NodFactura* nodInceput, float prag) {
 				free(nodCurent);
 				return NULL;
 			}
-			else {
+			else { //legam nodurile vecine, eliminand nodCurent
+                nodCurent->pre->urm = nodCurent->urm;
+                nodCurent->urm->pre = nodCurent->pre;
 
+                if(nodCurent == nodInceput) //daca curent e cap
+                    nodInceput = nodCurent->urm;
+                
+                free(nodCurent->factura->dataEmitere);
+                free(nodCurent->factura->beneficiar);
+                free(nodCurent->factura);
+                free(nodCurent);
 			}
 		}
+        nodCurent = nodUrmator;
+        if(nodCurent == nodInceput){
+            terminat =1;
+        } 
+	} while(!terminat);
 
-	}
+    return nodInceput;
+}
+
+/*Functie: copiazaFactura - copie completa, cu alocare memorie pt stringuri --struct noua*/
+
+Factura* copiazaFactura(const Factura* f){
+    Factura* copie = (Factura*)malloc(sizeof(Factura));
+    if(copie==NULL)
+        return NULL;
+    copie->idFactura = f->idFactura;
+    copie->dataEmitere = copiazaString(f->dataEmitere);
+    copie->beneficiar = copiazaString(f->beneficiar);
+    copie->sumaPlata = f->sumaPlata;
+    copie->nrZileScadenta = f->nrZileScadenta;
+    return copie;
+}
+
+//F(pushStiva) adauga factura in stiva (pointer vf, factura(copie))
+NodStiva* pushStiva(NodStiva* stiva, Factura* factura){
+    NodStiva* nodNou = (NodStiva*)malloc(sizeof(NodStiva));
+    if(nodNou == NULL)
+        return stiva;
+    nodNou->factura = factura;
+    nodNou->urm = stiva;
+    return nodNou; //nodNou e practic noul varf
+}
+
+//F facturidupadata: comparare lexicografica(aaaa-ll-zz) - cu valori copiate
+
+NodStiva* facturiDupaData(NodFactura* nodInceput, const char* data){
+    NodStiva* stiva = NULL;
+    if(nodInceput== NULL)
+        return stiva;
+    
+    NodFactura* nodCurent = nodInceput;
+    do{
+        if(strcmp(nodCurent->factura->dataEmitere, data) >0){
+            Factura* facturaCopie = copiazaFactura(nodCurent->factura);
+            stiva = pushStiva(stiva, facturaCopie);
+        }
+        nodCurent = nodCurent->urm;
+    } while(nodCurent != nodInceput);
+
+    return stiva;
+}
+
+//afisare stiva
+void afisareStiva(NodStiva* stiva) {
+    while(stiva != NULL){
+        printf("Id: %d, Data: %s, Beneficiar: %s, Suma: %.2f, Zile: %u",
+        stiva->factura->idFactura,
+        stiva->factura->dataEmitere,
+        stiva->factura->beneficiar,
+        stiva->factura->sumaPlata,
+        stiva->factura->nrZileScadenta);
+
+    NodStiva* temp = stiva;
+    stiva = stiva->urm;
+    free(temp->factura->dataEmitere);
+    free(temp->factura->beneficiar);
+    free(temp->factura);
+    free(temp);
+    }
+}
+
+void elibereazaLista(NodFactura* nodInceput){
+    if(nodInceput==NULL)
+        return;
+    
+    NodFactura* nodCurent = nodInceput;
+    do{
+        NodFactura* nodUrmator = nodCurent->urm;
+        free(nodCurent->factura->dataEmitere);
+        free(nodCurent->factura->beneficiar);
+        free(nodCurent->factura);
+        free(nodCurent);
+        nodCurent = nodUrmator;
+    } while(nodCurent != nodInceput);
+}
+
+int main(){
+    FILE* fpOut=fopen("facturi.txt", "w");
+    if(fpOut == NULL){
+        printf("Nush, nu merge. \n");
+        return 1;
+    }
+
+    fprintf(fpOut, "1 2025-01-02 Georgica 389.00 30\n");
+    fprintf(fpOut, "2 2025-02-03 Ludmila 123.12 15\n");
+    fprintf(fpOut, "3 2025-04-03 Veronica 100.00 20\n");
+    fprintf(fpOut, "4 2026-01-01 Robocop 999.99 875 \n");
+    fprintf(fpOut, "5 2021-12-01 Ludmila 0.98 394\n");
+    fclose(fpOut);
+
+    NodFactura* nodInceput = NULL;
+    FILE* fp = fopen("facturi.txt", "r");
+    if(fp == NULL){
+        printf("La naiba cu fisierul asta! \n");
+        return 1;
+    }
+
+    int id;
+    char data[50], beneficiar[50];
+    float suma;
+    unsigned int zile;
+
+    while(fscanf(fp, "%d %s %s %f %u", &id, data, beneficiar, &suma, &zile) ==5) {
+        Factura* facturaNoua = (Factura*)malloc(sizeof(Factura));
+        if(facturaNoua == NULL)
+            continue;
+        facturaNoua->idFactura = id;
+        facturaNoua->dataEmitere = copiazaString(data);
+        facturaNoua->beneficiar = copiazaString(beneficiar);
+        facturaNoua->sumaPlata = suma;
+        facturaNoua->nrZileScadenta = zile;
+
+        nodInceput = inserareFactura(nodInceput, facturaNoua);
+    }
+    fclose(fp);
+
+    printf("Parcurgerea listei in sensul acelor de ceasornic: \n");
+    afisareInformatiiFacturi(nodInceput);
+
+    printf("Parcurgerea listei in sensul opus acelor de ceasornic:\n");
+    afisareInformatiiFacturiPeInvers(nodInceput);
+
+    const char* benef = "Ludmila";
+    unsigned int totalZile = totalZilePentruBeneficiar(nodInceput, benef);
+    printf("Total zile pana la scadenta pentru beneficiarul: %s: %u\n", benef, totalZile);
+    printf("*****************************************");
+
+    modificaSumaPlata(nodInceput, 3, 894.12);
+    printf("Lista dupa modificarea sumei de plata din factura cu id-ul nr 3: \n");
+    afisareInformatiiFacturi(nodInceput);
+
+    nodInceput = stergeFacturiSubPrag(nodInceput, 500);
+    printf("Lista dupa stergerea facturilor cu suma de plata <500: \n");
+    if(nodInceput!= NULL){
+        afisareInformatiiFacturi(nodInceput);
+    } else{
+        printf("Nu-iiii.\n");
+    }
+    NodStiva* stiva = facturiDupaData(nodInceput, "2024-06-03");
+    printf("Stiva cu facturi emise dupa data 2024-06-03: \n");
+    afisareStiva(stiva);
+
+    elibereazaLista(nodInceput);
+
+    return 0;
+
 }
